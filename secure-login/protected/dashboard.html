@@ -7,6 +7,13 @@
 <body>
   <h1>Dashboard</h1>
   <p>If you can see this, you are logged in </p>
+  <script>
+      cookieValue = getcookie(req);
+  </script>
+  <p>
+    Your session cookie: <strong><span id="cookieValue"></span></strong>
+    Your username: <span id="username"></span>
+  </p>
   <button id="logoutBtn">Logout</button>
 
   <script>
