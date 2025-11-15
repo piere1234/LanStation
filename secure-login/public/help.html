@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Prerequisites & Database Setup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" onerror="this.href='/styles.css'">
+</head>
+<body>
+  <div class="widewrap">
+    <div class="card">
+      <h1>Prerequisites & Database Setup</h1>
+      <p class="sub">What to install, then the commands to create the PostgreSQL database and tables.</p>
+
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>Node.js 18+ installed</li>
+        <li>PostgreSQL 13+ installed</li>
+        <li><code>psql</code> client available</li>
+      </ul>
+
+      <h2>Create the database and tables</h2>
+      <p>Run these commands in a psql shell:</p>
+
+<pre class="small" style="white-space:pre-wrap;">
+CREATE DATABASE lanstation;
+\c lanstation
+CREATE TABLE IF NOT EXISTS users (
+  id BIGSERIAL PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE
+);
+CREATE TABLE IF NOT EXISTS "session" (
+  sid varchar NOT NULL,
+  sess json NOT NULL,
+  expire timestamp(6) NOT NULL,
+  CONSTRAINT session_pkey PRIMARY KEY (sid)
+);
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session"(expire);
+</pre>
+    <p>
+        Create a gitignored .env file in your folder, containing:
+    </p>
+    <pre class="small" style="white-space:pre-wrap;">
+DATABASE_URL=postgres://postgres:password*@localhost:5433*/lanstation
+SESSION_SECRET=verysecretkey*
+ADMIN_CODE=EvenMoreSecretAdminCode123!*
+HOST=0.0.0.0
+
+* : Change accordingly
+</pre>
+
+
+      <div class="row" style="margin-top:12px;">
+        <button class="btn" onclick="location.href='/'">Home</button>
+        <button class="btn" onclick="location.href='/signup'">Sign up</button>
+        <button class="btn" onclick="location.href='/login'">Log in</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

@@ -1,41 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="styles.css">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+  <meta charset="UTF-8" />
+  <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" onerror="this.href='styles.css'">
 </head>
 <body>
-  <button onclick="window.location.href='/'">Home</button>  
-  <form id="loginForm">
-    <input type="text" name="username" placeholder="Username" required><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <button type="submit">Log In</button>
-  </form> 
+  <div class="wrap">
+    <div class="card">
+      <h1>Welcome back</h1>
+      <p class="sub">Log in to access your dashboard.</p>
+
+      <div class="row" style="margin-bottom:10px;">
+        <button class="btn" onclick="location.href='/'">Home</button>
+        <button class="btn" onclick="location.href='signup'">Create account</button>
+      </div>
+
+      <form id="loginForm" novalidate>
+        <label for="username">Username</label>
+        <input class="input" id="username" name="username" placeholder="username" autocomplete="username" required />
+
+        <label for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+
+        <button class="btn" type="submit" id="submitBtn">Log In</button>
+        <div id="msg" class="alert" style="display:none;"></div>
+      </form>
+
+      <p class="footer small">Only ever share files with people you can trust completely</p>
+    </div>
+  </div>
+
   <script>
-    async function sendData(url, form) {
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
+    const form = document.getElementById("loginForm");
+    const msg = document.getElementById("msg");
+    const submitBtn = document.getElementById("submitBtn");
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-
-      const text = await res.text();
-      alert(text);
-
-      if (res.ok) {
-        window.location.href = "/dashboard";
-      }
+    function showMsg(text, ok=false) {
+      msg.textContent = text;
+      msg.className = "alert " + (ok ? "ok" : "err");
+      msg.style.display = "block";
     }
 
-    document.getElementById("loginForm").addEventListener("submit", e => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      sendData("/login", e.target);
+      msg.style.display = "none";
+      const username = form.username.value.trim();
+      const password = form.password.value;
+      if (!username || !password) {
+        showMsg("Please fill in both fields.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ username, password })
+        });
+
+        if (res.ok) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        const errText = await res.text().catch(()=>"Login failed");
+        showMsg(errText || "Login failed");
+      } catch (err) {
+        showMsg("Network error. Are you on the same LAN and is the server running?");
+      } finally {
+        submitBtn.disabled = false;
+      }
     });
-  </script>   
+  </script>
 </body>
 </html>

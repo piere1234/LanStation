@@ -2,67 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Signup</title>
+  <title>Admin Signup</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/style.css" onerror="this.href='/styles.css'">
 </head>
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Create your account</h1>
-      <p class="sub">Join the LAN and start sharing.</p>
+      <h1>Create an admin account</h1>
+      <p class="sub">Admins can manage users (including truncating the table). Use this carefully.</p>
+
       <div class="row" style="margin-bottom:10px;">
         <button class="btn" onclick="location.href='/'">Home</button>
-        <button class="btn" onclick="location.href='/signup_admin'">I'm an admin</button>
+        <button class="btn" onclick="location.href='/login'">Log in</button>
+        <button class="btn" onclick="location.href=href='/signup'">User signup</a>
       </div>
+
       <form id="signupForm" novalidate>
         <label for="username">Username</label>
-        <input class="input" id="username" name="username" placeholder="username" autocomplete="username" required />
+        <input class="input" id="username" name="username" placeholder="admin" autocomplete="username" required />
+
         <label for="password">Password</label>
         <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="new-password" required />
-        <button class="btn" type="submit" id="submitBtn">Sign Up</button>
+
+        <label for="admin_code">Admin code</label>
+        <input class="input" id="admin_code" name="admin_code" type="password" placeholder="Your admin code" required />
+        <div class="row">
+          <div>
+            <label for="first_name">First name</label>
+            <input class="input" id="first_name" name="first_name" placeholder="Jane" />
+          </div>
+          <div>
+            <label for="last_name">Last name</label>
+            <input class="input" id="last_name" name="last_name" placeholder="Doe" />
+          </div>
+        </div>
+
+        <button class="btn" type="submit" id="submitBtn">Create admin</button>
         <div id="msg" class="alert" style="display:none;"></div>
       </form>
-      <p class="footer small">Already have an account? <a href="/login">Log in</a></p>
+
+      <p class="footer small">On success, you’ll be logged in and redirected to <code>/dashboard</code>.</p>
     </div>
   </div>
+
   <script>
     const form = document.getElementById("signupForm");
     const msg = document.getElementById("msg");
     const submitBtn = document.getElementById("submitBtn");
+
     function showMsg(text, ok=false) {
       msg.textContent = text;
       msg.className = "alert " + (ok ? "ok" : "err");
       msg.style.display = "block";
     }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       msg.style.display = "none";
+
       const username = form.username.value.trim();
       const password = form.password.value;
-      if (!username || !password) {
-        showMsg("Please fill in username and password.");
+      const admin_code = form.admin_code.value;
+
+      if (!username || !password || !admin_code) {
+        showMsg("Please fill in username, password, and admin code.");
         return;
       }
+
       submitBtn.disabled = true;
+
       try {
         const payload = {
           username,
           password,
+          admin_code,
           first_name: form.first_name?.value?.trim() || "",
           last_name: form.last_name?.value?.trim() || ""
         };
-        const res = await fetch("/signup", {
+
+        const res = await fetch("/signup_admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(payload)
         });
+
         if (res.ok) {
           window.location.href = "/dashboard";
           return;
         }
-        const errText = await res.text().catch(()=>"Signup failed");
+
+        const errText = await res.text().catch(() => "Signup failed");
         showMsg(errText || "Signup failed");
       } catch (err) {
         showMsg("Network error. Is the server running?");

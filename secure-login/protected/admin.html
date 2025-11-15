@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" onerror="this.href='/styles.css'">
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Admin panel</h1>
+      <p class="sub">Danger zone: truncate all users and reset IDs.</p>
+
+      <div class="row" style="margin-bottom:12px;">
+        <button class="btn" onclick="location.href='/'">Home</button>
+        <button class="btn" onclick="location.href='/dashboard'">Dashboard</button>
+      </div>
+
+      <div id="msg" class="alert" style="display:none;"></div>
+
+      <button id="truncateBtn" class="btn" style="border-color:#7f1d1d; background:#2a0a0a;">
+        TRUNCATE users
+      </button>
+
+      <p class="small" style="margin-top:10px;">
+        This will delete <strong>ALL accounts</strong> and clear all sessions, including yours.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const msg = document.getElementById("msg");
+    const btn = document.getElementById("truncateBtn");
+
+    function show(text, ok=false) {
+      msg.textContent = text;
+      msg.className = "alert " + (ok ? "ok" : "err");
+      msg.style.display = "block";
+    }
+
+    btn.addEventListener("click", async () => {
+      if (!confirm("Really TRUNCATE all users? This logs everyone out.")) return;
+      try {
+        const res = await fetch("/admin/truncate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ confirm: "YES_TRUNCATE_USERS" })
+        });
+        const text = await res.text();
+        if (res.ok) {
+          show(text, true);
+          setTimeout(()=>location.href="/", 1200);
+        } else {
+          show(text || "Failed");
+        }
+      } catch (e) {
+        show("Network error");
+      }
+    });
+  </script>
+</body>
+</html>

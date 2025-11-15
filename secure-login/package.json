@@ -11,13 +11,16 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^3.0.3",
     "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
+    "multicast-dns": "^7.2.5",
     "pg": "^8.16.3",
-    "psql": "^0.0.1"
+    "psql": "^0.0.1",
+    "socket.io": "^4.8.1",
+    "uuid": "^13.0.0"
   }
 }

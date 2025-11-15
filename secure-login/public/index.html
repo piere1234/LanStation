@@ -1,15 +1,27 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <link rel="stylesheet" href="styles.css">
-  <meta charset="UTF-8">
-  <title>MSB Project!</title>
+  <meta charset="UTF-8" />
+  <title>LanStation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <h1>Welcome</h1>
-  <button href="/">Home</button>
-  <button onclick="window.location.href='/login'">Login</button>
-  <button onclick="window.location.href='/signup'">Sign up</button>
-  <button onclick="window.location.href='about_us.html'">About us</button>
+  <div class="wrap">
+    <div class="card">
+      <h1>Welcome</h1>
+      <p class="sub">Lightweight login, live presence, and file sharing on your LAN.</p>
+
+      <div class="row" style="margin-top:10px;">
+        <button class="btn" onclick="location.href='/login'">Login</button>
+        <button class="btn" onclick="location.href='/signup'">Sign up</button>
+        <button class="btn" onclick="location.href='/help'">Help</button>
+      </div>
+
+      <p class="footer small" style="margin-top:14px;">
+        Only ever share files with people you can trust completely.
+      </p>
+    </div>
+  </div>
 </body>
 </html>

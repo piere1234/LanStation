@@ -1,27 +1,521 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard</title>
-</head>
-<body>
-  <h1>Dashboard</h1>
-  <p>If you can see this, you are logged in </p>
-  <script>
-      cookieValue = getcookie(req);
-  </script>
-  <p>
-    Your session cookie: <strong><span id="cookieValue"></span></strong>
-    Your username: <span id="username"></span>
-  </p>
-  <button id="logoutBtn">Logout</button>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>LanStation - Presence & File Share</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --card: #111827;
+        --bg: #0b1020;
+        --muted: #9aa3b2;
+        --ok: #22c55e;
+        --warn: #eab308;
+        --border: #1f2937;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: #e5e7eb;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+          Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 32px auto;
+        padding: 0 16px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+      .subtitle {
+        color: var(--muted);
+        margin-bottom: 18px;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: 1.1fr 1fr;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .me {
+        font-weight: 600;
+      }
+      .users {
+        display: grid;
+        gap: 8px;
+      }
+      .user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .online {
+        background: var(--ok);
+      }
+      .offline {
+        background: #6b7280;
+      }
+      .you {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        color: #cbd5e1;
+      }
+      select,
+      input[type="file"],
+      button {
+        width: 100%;
+      }
+      select,
+      input[type="file"] {
+        color: #e5e7eb;
+        background: #0f172a;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+      }
+      button {
+        margin-top: 10px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #1f2937;
+        color: #e5e7eb;
+        cursor: pointer;
+      }
+      button[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+      }
+      .row > * {
+        flex: 1;
+      }
+      .log {
+        height: 220px;
+        overflow: auto;
+        background: #0a0f1e;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 13px;
+      }
+      .log .entry {
+        margin: 4px 0;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .progress {
+        height: 8px;
+        background: #111827;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #60a5fa, #34d399);
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #0f172a;
+        color: #cbd5e1;
+        font-size: 12px;
+      }
+      .flex {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      a.download {
+        color: #93c5fd;
+        text-decoration: none;
+      }
+      a.download:hover {
+        text-decoration: underline;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>LanStation</h1>
+      <div class="subtitle">Live presence and peer file sharing.</div>
+      
 
-  <script>
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await fetch("/logout", { method: "POST", credentials: "include" });
-      window.location.href = "/";
-      console.log(getcookie(req)); 
-    });
-  </script>
-</body>
+      <div class="grid">
+        <section class="card">
+          <div class="flex" style="justify-content: space-between">
+            <div>Logged in as: <span id="me" class="me">—</span></div>
+            <div class="muted">
+              <span class="pill" id="connState">Disconnected</span>
+            </div>
+          </div>
+          <h3 style="margin: 14px 0 10px">Connected users</h3>
+          <div id="users" class="users"></div>
+          <div>
+            <button class="btn" id="logoutBtn">Log out</button>
+            <button class="btn" id="manageBtn" style="color: #ff5c5c;">Admin panel</button>
+          </div>
+          
+          <script>
+            document.getElementById("logoutBtn").addEventListener("click", async () => {
+              const res = await fetch("/logout", { method: "POST", credentials: "include" });
+              window.location.href = "/";
+            });
+            document.getElementById("manageBtn").addEventListener("click", async () => {
+              // const res = await fetch("/admin", { method: "GET"});
+              window.location.href = "/admin";
+            })
+          </script>
+        </section>
+        <section class="card">
+          <h3 style="margin: 0 0 10px">Send a file</h3>
+          <div class="row">
+            <div>
+              <label for="recipient">Recipient</label>
+              <select id="recipient"></select>
+            </div>
+            <div>
+              <label for="fileInput">Choose file</label>
+              <input type="file" id="fileInput" />
+            </div>
+          </div>
+          <div class="row">
+            <button id="sendBtn" disabled>Send</button>
+            <button id="cancelBtn" disabled>Cancel</button>
+          </div>
+          <div id="sendStatus" class="muted" style="margin-top: 10px"></div>
+          <div class="progress" style="margin-top: 8px">
+            <div id="sendBar" class="bar"></div>
+          </div>
+          
+        </section>
+      </div>
+      <section class="card" style="margin-top: 16px">
+        <h3 style="margin: 0 0 8px">Activity</h3>
+        <div id="log" class="log" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const logEl = $("log");
+      function logLine(...args) {
+        const d = document.createElement("div");
+        d.className = "entry";
+        d.textContent = args.join(" ");
+        logEl.appendChild(d);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+      function humanKB(n) {
+        return Math.ceil(n / 1024) + " KB";
+      }
+
+      const connState = $("connState");
+      const socket = io({ withCredentials: true });
+
+      socket.on("connect", () => {
+        connState.textContent = "Connected";
+        logLine("Connected.");
+      });
+      socket.on("disconnect", () => {
+        connState.textContent = "Disconnected";
+        logLine("Disconnected.");
+      });
+
+      let me = null;
+      let presence = [];
+
+      const meEl = $("me");
+      const usersEl = $("users");
+      const recipientSel = $("recipient");
+      const fileInput = $("fileInput");
+      const sendBtn = $("sendBtn");
+      const cancelBtn = $("cancelBtn");
+      const sendBar = $("sendBar");
+      const sendStatus = $("sendStatus");
+
+      socket.on("me", (info) => {
+        me = info;
+        meEl.textContent = `${me.name} (${me.id})`;
+        refreshPresenceUI();
+      });
+
+      socket.on("presence:list", (list) => {
+        presence = list;
+        refreshPresenceUI();
+      });
+
+      function refreshPresenceUI() {
+        // users list
+        usersEl.innerHTML = "";
+        const anyoneOnline = [];
+        presence.forEach((u) => {
+          const row = document.createElement("div");
+          row.className = "user";
+          const dot = `<span class="dot ${
+            u.online ? "online" : "offline"
+          }"></span>`;
+          const you = u.id === me?.id ? `<span class="you">you</span>` : "";
+          row.innerHTML = `${dot} <strong>${u.name}</strong> <span class="muted">(${u.id})</span> ${you}`;
+          usersEl.appendChild(row);
+          if (u.online && u.id !== me?.id) anyoneOnline.push(u);
+        });
+
+        // recipient select
+        recipientSel.innerHTML = "";
+        if (anyoneOnline.length === 0) {
+          const opt = document.createElement("option");
+          opt.textContent = "No one online";
+          opt.value = "";
+          recipientSel.appendChild(opt);
+          recipientSel.disabled = true;
+          sendBtn.disabled = true;
+        } else {
+          recipientSel.disabled = false;
+          for (const u of anyoneOnline) {
+            const opt = document.createElement("option");
+            opt.value = u.id;
+            opt.textContent = `${u.name} (${u.id})`;
+            recipientSel.appendChild(opt);
+          }
+          updateSendButtonState();
+        }
+      }
+
+      function updateSendButtonState() {
+        sendBtn.disabled = !(recipientSel.value && fileInput.files?.length);
+      }
+
+      recipientSel.addEventListener("change", updateSendButtonState);
+      fileInput.addEventListener("change", updateSendButtonState);
+      let currentOffer = null;
+      const CHUNK = 64 * 1024;
+
+      sendBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const toUserId = recipientSel.value;
+        const file = fileInput.files?.[0];
+        if (!toUserId) return alert("Choose a recipient");
+        if (!file) return alert("Choose a file");
+
+        sendStatus.textContent = `Offering "${file.name}" to ${toUserId}...`;
+        sendBar.style.width = "0%";
+        cancelBtn.disabled = false;
+        sendBtn.disabled = true;
+
+        socket.emit("file:offer", {
+          toUserId,
+          fileName: file.name,
+          fileSize: file.size,
+          mime: file.type || "application/octet-stream",
+        });
+        currentOffer = {
+          toUserId,
+          file,
+          fileId: null,
+          pos: 0,
+          seq: 0,
+          canceled: false,
+        };
+        logLine(`Offer sent for "${file.name}" (${humanKB(file.size)})`);
+      });
+
+      cancelBtn.addEventListener("click", () => {
+        if (currentOffer) {
+          currentOffer.canceled = true;
+          sendStatus.textContent = "Canceled.";
+          sendBar.style.width = "0%";
+          cancelBtn.disabled = true;
+          updateSendButtonState();
+          logLine("Transfer canceled by sender.");
+        }
+      });
+
+      socket.on("file:offered", ({ fileId }) => {
+        if (!currentOffer) return;
+        currentOffer.fileId = fileId;
+        sendStatus.textContent = `Offer registered (id ${fileId}). Waiting for accept...`;
+      });
+
+      const incoming = {};
+      socket.on(
+        "file:offer",
+        ({ fromUserId, fromName, fileId, fileName, fileSize, mime }) => {
+          const ok = confirm(
+            `${fromName} wants to send you "${fileName}" (${humanKB(
+              fileSize
+            )}). Accept?`
+          );
+          socket.emit("file:accept", { fileId, fromUserId, accept: ok });
+          if (ok) {
+            incoming[fileId] = {
+              chunks: [],
+              size: fileSize,
+              name: fileName,
+              mime,
+              received: 0,
+            };
+            logLine(`Accepted "${fileName}" from ${fromName}.`);
+            const d = document.createElement("div");
+            d.className = "entry";
+            d.id = `recv-${fileId}`;
+            d.innerHTML = `Receiving <strong>${fileName}</strong> <span class="muted">0%</span>`;
+            logEl.appendChild(d);
+          } else {
+            logLine(`Declined "${fileName}" from ${fromName}.`);
+          }
+        }
+      );
+
+      socket.on("file:accept", ({ fileId, accept, toUserId, toName }) => {
+        if (!currentOffer || currentOffer.fileId !== fileId) return;
+        if (!accept) {
+          sendStatus.textContent = "Recipient declined.";
+          cancelBtn.disabled = true;
+          updateSendButtonState();
+          currentOffer = null;
+          return;
+        }
+        sendStatus.textContent = `Accepted by ${toName}. Sending...`;
+        logLine(`Sending to ${toName}...`);
+        sendFileChunks().catch((err) => {
+          logLine("Error while sending:", err?.message || err);
+          sendStatus.textContent = "Error while sending.";
+        });
+      });
+
+      async function sendFileChunks() {
+        const { file, fileId, toUserId } = currentOffer;
+        while (
+          currentOffer &&
+          !currentOffer.canceled &&
+          currentOffer.pos < file.size
+        ) {
+          const slice = file.slice(currentOffer.pos, currentOffer.pos + CHUNK);
+          const buf = await slice.arrayBuffer();
+          socket.emit("file:chunk", {
+            fileId,
+            toUserId,
+            seq: currentOffer.seq,
+            done: false,
+            chunk: buf,
+          });
+          currentOffer.pos += CHUNK;
+          currentOffer.seq++;
+          const pct = Math.min(
+            100,
+            Math.round((100 * currentOffer.pos) / file.size)
+          );
+          sendBar.style.width = pct + "%";
+          sendStatus.textContent = `Sending... ${pct}%`;
+        }
+        if (currentOffer && !currentOffer.canceled) {
+          socket.emit("file:chunk", {
+            fileId,
+            toUserId,
+            seq: currentOffer.seq,
+            done: true,
+            chunk: null,
+          });
+          sendBar.style.width = "100%";
+          sendStatus.textContent = `Finished sending "${file.name}".`;
+          logLine(`Finished sending "${file.name}".`);
+        }
+        cancelBtn.disabled = true;
+        currentOffer = null;
+        fileInput.value = "";
+        updateSendButtonState();
+      }
+
+      socket.on("file:chunk", ({ fileId, fromUserId, seq, done, chunk }) => {
+        const f = incoming[fileId];
+        if (!f) return;
+        if (!done && chunk) {
+          const u8 = new Uint8Array(chunk);
+          f.chunks.push(u8);
+          f.received += u8.byteLength;
+          const pct = Math.min(100, Math.round((100 * f.received) / f.size));
+          const row = document.getElementById(`recv-${fileId}`);
+          if (row)
+            row.innerHTML = `Receiving <strong>${f.name}</strong> <span class="muted">${pct}%</span>`;
+        }
+        if (done) {
+          const blob = new Blob(f.chunks, {
+            type: f.mime || "application/octet-stream",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = f.name;
+          a.textContent = `Download ${f.name}`;
+          a.className = "download";
+          const row = document.getElementById(`recv-${fileId}`);
+          if (row) {
+            row.innerHTML = `Received <strong>${f.name}</strong> — `;
+            row.appendChild(a);
+          } else {
+            logLine(`Received "${f.name}" — `);
+            const d = document.createElement("div");
+            d.className = "entry";
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = f.name;
+            link.textContent = `Download ${f.name}`;
+            link.className = "download";
+            d.appendChild(link);
+            logEl.appendChild(d);
+          }
+          delete incoming[fileId];
+        }
+      });
+
+      socket.on("file:error", ({ message }) => {
+        logLine("Error:", message);
+        sendStatus.textContent = "Error: " + message;
+        cancelBtn.disabled = true;
+        updateSendButtonState();
+        currentOffer = null;
+        sendBar.style.width = "0%";
+      });
+    </script>
+  </body>
 </html>
