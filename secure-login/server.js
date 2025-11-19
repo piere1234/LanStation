@@ -84,7 +84,6 @@ const sessionStore = new pgSession({
   createTableIfMissing: true,
 });
 
-
 const sessionMiddleware = session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET || "replace-me",
@@ -92,7 +91,6 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: { maxAge: 60 * 60 * 1000, sameSite: "lax", path: "/" },
 });
-app.use(sessionMiddleware);
 app.use(sessionMiddleware);
 
 io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
@@ -216,25 +214,14 @@ app.get("/help", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "help.html"));
 });
 
-
-
-app.post("/signup", async (req, res) => {
-  
-  const { username, password } = req.body;
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  try {
-    const { rows } = await pool.query(
-      "SELECT username, is_admin FROM users WHERE id = $1",
-      [req.session.userId]
-    );
-    if (!rows.length) return res.status(404).send("User not found");
-    res.json(rows[0]);
-  } catch (e) {
-    next(e);
-  }
+app.get("/api/me", requireAuth, (req, res) => {
+    res.json({
+    loggedIn: true,
+    id: req.session.userId,
+    username: req.session.username,
+  });
 });
+
 
 app.post("/admin/truncate", requireAdmin, async (req, res, next) => {
   try {
