@@ -113,7 +113,7 @@ It will then write a `.env` file and finally start `node server.js`.
 
 If this script works end-to-end for you, you can skip the manual setup section below.
 
-After that, you can use setup again to start the server, it won't reinstall everything, just start your server. I you want to reinitiate environment setup, delete.env.
+After that, you can use setup again to start the server, it won't reinstall everything, just start your server. If you want to reinitiate environment setup, delete.env.
 
 ### Option 2: Manual setup
 
