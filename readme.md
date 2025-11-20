@@ -62,7 +62,7 @@ LanStation/
 
 **Server machine (where LanStation runs):**
 
-- Windows 10 or Windows 11 (otherwise, just run server.js manually - that's the only thing in startserver.cmd)
+- Windows 10 or Windows 11 (preferred)
 - Node.js (LTS recommended)
 - PostgreSQL (version compatible with your OS; examples below use 18.x on Windows)
 - A local network (home router, school network, or similar)
@@ -112,6 +112,8 @@ The script will typically:
 It will then write a `.env` file and finally start `node server.js`.
 
 If this script works end-to-end for you, you can skip the manual setup section below.
+
+After that, you can use setup again to start the server, it won't reinstall everything, just start your server. I you want to reinitiate environment setup, delete.env.
 
 ### Option 2: Manual setup
 
