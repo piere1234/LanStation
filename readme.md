@@ -44,8 +44,6 @@ _**Status:** student project — not production-hardened, intended for very trus
 
 ## Project structure
 
-Example layout; adjust if your repo differs.
-
 ```text
 LanStation/
 ├─ secure-login/          # Node.js / Express application
@@ -53,7 +51,8 @@ LanStation/
 │  ├─ protected/          # Protected HTML pages (admin.html, dashboard.html, etc.)
 │  ├─ public/             # Public HTML pages, CSS (styles.css), client JS
 │  ├─ assets/             # Static assets (currently unused or experimental)
-│  ├─ startserver.cmd     # Optional Windows helper script for setup and launch
+│  ├─ setup.cmd           # Optional Windows helper script for setup
+│  ├─ startserver.cmd     # Launch cmd file
 │  └─ .env                # Environment file (created by script or by hand)
 ├─ .gitignore
 └─ readme.md              # This file
@@ -63,7 +62,7 @@ LanStation/
 
 **Server machine (where LanStation runs):**
 
-- Windows 10 or Windows 11
+- Windows 10 or Windows 11 (otherwise, just run server.js manually - that's the only thing in startserver.cmd)
 - Node.js (LTS recommended)
 - PostgreSQL (version compatible with your OS; examples below use 18.x on Windows)
 - A local network (home router, school network, or similar)
@@ -77,9 +76,9 @@ LanStation/
 
 You can either use the helper script or set everything up manually.
 
-### Option 1: Using `startserver.cmd`
+### Option 1: Using `setup.cmd`
 
-In `secure-login/` there is a script called `startserver.cmd`. On a Windows 10/11 machine:
+In `secure-login/` there is a script called `setup.cmd`. On a Windows 10/11 machine:
 
 1. Open PowerShell or Command Prompt.
 2. Navigate to the `secure-login` folder:
@@ -93,6 +92,8 @@ In `secure-login/` there is a script called `startserver.cmd`. On a Windows 10/1
    ```cmd
    startserver.cmd
    ```
+
+Alternatively just double click the setup.cmd file.
 
 The script will typically:
 

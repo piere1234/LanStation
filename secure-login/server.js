@@ -497,6 +497,10 @@ function getLanIPv4(intName) {
 }
 
 const LAN_IP = getLanIPv4("Wi-Fi");
+
+if (!LAN_IP)  {
+  LAN_IP = getLanIPv4("eth0");
+}
 server.listen(PORT, HOST || LAN_IP, () => {
   console.log(`Server running on http://${LAN_IP}:${PORT}`);
 });
