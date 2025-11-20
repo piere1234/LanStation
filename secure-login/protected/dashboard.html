@@ -295,10 +295,22 @@
             u.online ? "online" : "offline"
           }"></span>`;
           const you = u.id === me?.id ? `<span class="you">you</span>` : "";
-          row.innerHTML = `${dot} <strong>${u.name}</strong> <span class="muted">(${u.id})</span> ${you}`;
+          const portBadge = u.port6112Open
+            ? `<span class="you" style="margin-left:4px; color:#22c55e;">Playing Warcraft III</span>`
+            : "";
+
+          row.innerHTML = `
+            ${dot}
+            <strong>${u.name}</strong>
+            <span class="muted">(${u.id})</span>
+            ${you}
+            ${portBadge}
+          `;
           usersEl.appendChild(row);
+
           if (u.online && u.id !== me?.id) anyoneOnline.push(u);
         });
+
 
         // recipient select
         recipientSel.innerHTML = "";

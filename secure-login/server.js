@@ -1,5 +1,5 @@
 console.log("Connecting to DB...");
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 
 
 const path = require("path");
@@ -13,6 +13,9 @@ const { v4: uuidv4 } = require("uuid");
 const app = express();
 const server = http.createServer(app);
 const io = require("socket.io")(server, { cors: { origin: true, credentials: true } });
+const net = require("net");
+const mdns = require("multicast-dns")();
+const HOSTNAME = "lanstation.local";  
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -97,14 +100,82 @@ io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
 
 const presence = new Map();
 
+// Broadcast users, including port 6112 status
 function broadcastPresence() {
   const users = [...presence.entries()].map(([id, u]) => ({
     id,
     name: u.name,
     online: u.sockets.size > 0,
+    port6112Open: !!u.port6112Open,
   }));
   io.emit("presence:list", users);
 }
+
+// Helper: extract client IP from socket (handles ::ffff:192.168.1.x)
+function getClientIp(socket) {
+  let ip =
+    socket.handshake?.address ||
+    socket.request?.connection?.remoteAddress ||
+    "";
+  if (ip.startsWith("::ffff:")) ip = ip.slice(7);
+  return ip;
+}
+
+// Check if TCP port 6112 is open on host
+function checkPort6112(host, timeoutMs = 2000) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host, port: 6112 });
+
+    let done = false;
+    const finish = (result) => {
+      if (done) return;
+      done = true;
+      socket.destroy();
+      resolve(result);
+    };
+
+    socket.setTimeout(timeoutMs);
+
+    socket.once("connect", () => {
+      finish(true);
+    });
+
+    socket.once("timeout", () => {
+      finish(false);
+    });
+
+    socket.once("error", () => {
+      finish(false);
+    });
+  });
+}
+
+// Periodically poll all online users for port 6112 status
+async function pollUsersPort6112() {
+  const entries = [...presence.entries()].filter(
+    ([, u]) => u.sockets.size > 0 && u.ip
+  );
+
+  for (const [userId, user] of entries) {
+    try {
+      const open = await checkPort6112(user.ip);
+      if (user.port6112Open !== open) {
+        user.port6112Open = open;
+        broadcastPresence(); // update UI when something changes
+      }
+    } catch (err) {
+      console.error("[PORT6112] Error checking", user.ip, err.message || err);
+    }
+  }
+}
+
+// Run every 15 seconds
+setInterval(() => {
+  pollUsersPort6112().catch((e) =>
+    console.error("[PORT6112] poll error", e.message || e)
+  );
+}, 15000);
+
 
 io.on("connection", (socket) => {
   const sess = socket.request.session;
@@ -116,13 +187,24 @@ io.on("connection", (socket) => {
     return;
   }
 
-  if (!presence.has(userId)) {
-    presence.set(userId, { name: username || `User ${userId}`, sockets: new Set() });
-  }
-  presence.get(userId).sockets.add(socket.id);
+  const ip = getClientIp(socket); // ⬅️ NEW
 
-  socket.emit("me", { id: userId, name: presence.get(userId).name });
+  if (!presence.has(userId)) {
+    presence.set(userId, {
+      name: username || `User ${userId}`,
+      sockets: new Set(),
+      ip,
+      port6112Open: false,
+    });
+  }
+
+  const entry = presence.get(userId);
+  entry.sockets.add(socket.id);
+  entry.ip = ip; // update last known IP
+
+  socket.emit("me", { id: userId, name: entry.name });
   broadcastPresence();
+
   socket.on("file:offer", ({ toUserId, fileName, fileSize, mime }) => {
     if (!toUserId || !fileName || !Number.isFinite(fileSize)) return;
     if (fileSize > 100 * 1024 * 1024 * 1024) {
@@ -138,7 +220,7 @@ io.on("connection", (socket) => {
     for (const sid of rec.sockets) {
       io.to(sid).emit("file:offer", {
         fromUserId: userId,
-        fromName: presence.get(userId).name,
+        fromName: entry.name,
         fileId,
         fileName,
         fileSize,
@@ -156,7 +238,7 @@ io.on("connection", (socket) => {
         fileId,
         accept,
         toUserId: userId,
-        toName: presence.get(userId).name,
+        toName: entry.name,
       });
     }
   });
@@ -183,6 +265,7 @@ io.on("connection", (socket) => {
     broadcastPresence();
   });
 });
+
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -400,25 +483,42 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 80;
 const HOST = process.env.HOST;
 
-
-
 const os = require("os");
-const net = os.networkInterfaces();
 function getLanIPv4(intName) {
   const nets = os.networkInterfaces();
-  const NIC = nets[intName]
-    for (const a of NIC) {
-      if (a.family === "IPv4" && !a.internal) {
-        return a.address;
-      }
+  const NIC = nets[intName];
+  if (!NIC) return "127.0.0.1";
+  for (const a of NIC) {
+    if (a.family === "IPv4" && !a.internal) {
+      return a.address;
     }
-  
+  }
   return "127.0.0.1";
 }
-LAN_IP = getLanIPv4('Wi-Fi');
+
+const LAN_IP = getLanIPv4("Wi-Fi");
 server.listen(PORT, HOST || LAN_IP, () => {
   console.log(`Server running on http://${LAN_IP}:${PORT}`);
 });
 
+console.log(`[mDNS] Advertising ${HOSTNAME} -> ${LAN_IP}`);
 
+mdns.on("query", (packet) => {
+  for (const q of packet.questions || []) {
+    const name = (q.name || "").toLowerCase().replace(/\.$/, "");
+    if (name === HOSTNAME && (q.type === "A" || q.type === "ANY")) {
+      console.log(`[mDNS] Answering A for ${HOSTNAME} with ${LAN_IP}`);
 
+      mdns.respond({
+        answers: [
+          {
+            name: HOSTNAME,
+            type: "A",
+            ttl: 120,
+            data: LAN_IP,
+          },
+        ],
+      });
+    }
+  }
+});
